@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recovery-api
+  namespace: recovery
+  labels:
+    app: recovery-api
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: recovery-api
+
+  template:
+    metadata:
+      labels:
+        app: recovery-api
+
+    spec:
+      containers:
+        - name: api
+          image: your-dockerhub/recovery-api:1.0.0
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8000
+
+          envFrom:
+            - configMapRef:
+                name: recovery-config
+            - secretRef:
+                name: recovery-secrets
+
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health # ✅ correct for production
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health # ✅ correct for production
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20

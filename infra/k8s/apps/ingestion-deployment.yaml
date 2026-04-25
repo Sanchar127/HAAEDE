@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion
+  namespace: recovery
+  labels:
+    app: ingestion
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ingestion
+
+  template:
+    metadata:
+      labels:
+        app: ingestion
+
+    spec:
+      containers:
+        - name: ingestion
+          image: your-dockerhub/ingestion-service:1.0.0 # 👈 Docker Hub image
+          imagePullPolicy: Always # ensures latest pushed image is pulled
+
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          envFrom:
+            - configMapRef:
+                name: recovery-config
+            - secretRef:
+                name: recovery-secrets

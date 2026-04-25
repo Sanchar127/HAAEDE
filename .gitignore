@@ -1,0 +1,59 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+*.pkl
+
+# Virtual environments
+venv/
+.env/
+.envrc
+.venv/
+
+# =========================
+# IDEs
+# =========================
+.vscode/
+.idea/
+*.swp
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# Data (VERY IMPORTANT for ML projects)
+# =========================
+data/
+*.csv
+*.parquet
+*.json
+
+# =========================
+# Kubernetes / secrets
+# =========================
+*.kubeconfig
+kubeconfig
+*.pem
+*.key
+
+# DO NOT COMMIT SECRETS
+*.env
+secrets.yaml
+
+# =========================
+# Docker
+# =========================
+**/dist/
+**/build/
+
+# =========================
+# Mac / Linux
+# =========================
+.DS_Store

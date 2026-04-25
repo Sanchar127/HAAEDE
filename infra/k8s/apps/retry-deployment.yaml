@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: retry-consumer
+  namespace: recovery
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: retry-consumer
+  template:
+    metadata:
+      labels:
+        app: retry-consumer
+    spec:
+      containers:
+        - name: retry
+          image: your-dockerhub/recovery-api:latest
+          command: ["python", "app/consumer/retry_worker.py"]
+          envFrom:
+            - configMapRef:
+                name: recovery-config

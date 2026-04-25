@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+aiokafka
+asyncpg
+pydantic
+python-dotenv
+pandas
+numpy
+scikit-learn
+kafka-python

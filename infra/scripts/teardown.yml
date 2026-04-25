@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e
+
+echo "🧹 Tearing down Recovery Platform..."
+
+kubectl delete -f infra/k8s/observability/ --ignore-not-found
+kubectl delete -f infra/k8s/apps/ --ignore-not-found
+kubectl delete -f infra/k8s/kafka/ --ignore-not-found
+kubectl delete -f infra/k8s/postgres/ --ignore-not-found
+kubectl delete -f infra/k8s/base/ --ignore-not-found
+
+echo "✅ Teardown complete"

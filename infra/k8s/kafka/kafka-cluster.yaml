@@ -1,0 +1,36 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: recovery-kafka
+  namespace: kafka
+
+spec:
+  kafka:
+    version: 3.7.0
+    replicas: 3
+
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      auto.create.topics.enable: "false"
+
+    storage:
+      type: ephemeral # use "persistent-claim" in real prod
+
+  zookeeper:
+    replicas: 3
+    storage:
+      type: ephemeral # switch to persistent in production
+
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
