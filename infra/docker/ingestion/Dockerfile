@@ -5,17 +5,16 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# system deps (safe for data + kafka libs)
 RUN apt-get update && apt-get install -y \
     build-essential \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# copy code
-COPY . .
+COPY services/ingestion/app/ /app/
 
-# run ingestion pipeline
-CMD ["python", "-m", "app.run"]
+
+
+CMD ["python", "run.py"]

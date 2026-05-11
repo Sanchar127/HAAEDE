@@ -1,0 +1,14 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+
+build:
+  artifacts:
+    - image: ingestion-service
+      context: .
+      docker:
+        dockerfile: infra/docker/ingestion/Dockerfile
+
+deploy:
+  kubectl:
+    rawYaml:
+      - infra/k8s/apps/*.yaml

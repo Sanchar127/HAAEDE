@@ -1,26 +1,23 @@
-from modules.ingestion.app.loader import load_dataset
-from modules.ingestion.app.mapper import map_to_event
-from modules.ingestion.app.producer import EventProducer
+import os
+# from loader import load_data
+from producer import stream_to_kafka
 
-DATA_PATH = "app/data/lending_club.csv"
-TOPIC = "recovery-events"
+TOPIC_NAME = os.getenv("TOPIC_NAME", "fintech.debt.raw")
+KAFKA_SERVER = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 
-def main():
-    print("📊 Loading dataset...")
-    df = load_dataset(DATA_PATH)
 
-    producer = EventProducer()
+def start_ingestion():
+    print("Starting Layer 1 Ingestion...")
 
-    print("🚀 Streaming events to Kafka...")
+    # chunks = load_data()
 
-    for _, row in df.iterrows():
-        event = map_to_event(row.to_dict())
+    # if chunks:
+    #     for i, chunk in enumerate(chunks):
+    #         print(f"Processing chunk {i+1}...")
+    #         stream_to_kafka(TOPIC_NAME, chunk)
 
-        producer.send(TOPIC, event)
+    # print("Ingestion complete.")
 
-        print(f"📤 Sent: {event['event_type']} | {event['customer_id']}")
-
-        time.sleep(0.2)  # simulate real-time stream
 
 if __name__ == "__main__":
-    main()
+    start_ingestion()
