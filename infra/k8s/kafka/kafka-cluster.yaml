@@ -1,4 +1,4 @@
-apiVersion: kafka.strimzi.io/v1
+apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
   name: kafka-nodes
@@ -13,7 +13,7 @@ spec:
   storage:
     type: ephemeral
 ---
-apiVersion: kafka.strimzi.io/v1
+apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: recovery-kafka
@@ -23,7 +23,7 @@ metadata:
     strimzi.io/kraft: enabled
 spec:
   kafka:
-    version: 4.2.0
+    replicas: 1
     listeners:
       - name: plain
         port: 9092
@@ -39,7 +39,7 @@ spec:
     topicOperator: {}
     userOperator: {}
 ---
-apiVersion: kafka.strimzi.io/v1
+apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: recovery-events
