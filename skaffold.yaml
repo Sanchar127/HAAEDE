@@ -1,19 +1,27 @@
-apiVersion: skaffold/v2beta29
+apiVersion: skaffold/v4beta7
 kind: Config
 
 build:
+  local:
+    push: false
   artifacts:
     - image: ingestion-service
       context: .
       docker:
         dockerfile: infra/docker/ingestion/Dockerfile
 
-  local:
-    push: false
+manifests:
+  rawYaml:
+    - infra/k8s/base/configmap.yaml
+    - infra/k8s/base/secrets.yaml
+    - infra/k8s/apps/*.yaml
 
 deploy:
-  kubectl:
-    manifests:
-      - infra/k8s/base/*.yaml
-      - infra/k8s/apps/*.yaml
-      - infra/k8s/kafka/*.yaml
+  kubectl: {}
+
+portForward:
+  - resourceType: deployment
+    resourceName: ingestion
+    namespace: recovery
+    port: 8080
+    localPort: 8080

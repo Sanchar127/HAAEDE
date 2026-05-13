@@ -1,5 +1,5 @@
 import requests
-from log.logger import get_logger
+from app.log.logger import get_logger
 from datetime import datetime
 
 logger = get_logger("github-collector")

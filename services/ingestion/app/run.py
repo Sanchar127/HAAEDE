@@ -1,11 +1,10 @@
 import os
 import time
 
-from producer import stream_to_kafka
-from collectors.github_collector import GitHubCollector
-from collectors.hackernews_collector import HackerNewsCollector
-from shared.logger import get_logger
-
+from app.producer import stream_to_kafka
+from app.collectors.github_collector import GitHubCollector
+from app.collectors.hackernews_collector import HackerNewsCollector
+from app.log.logger import get_logger
 logger = get_logger("ingestion-service")
 
 TOPIC_NAME = os.getenv("TOPIC_NAME", "raw.events")

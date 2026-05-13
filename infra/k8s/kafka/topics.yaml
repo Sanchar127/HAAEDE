@@ -1,15 +1,4 @@
-apiVersion: kafka.strimzi.io/v1  # Updated
-kind: Kafka
-metadata:
-  name: recovery-kafka
-  namespace: kafka
-spec:
-  kafka:
-    replicas: 1
-    version: 3.7.0
-...
----
-apiVersion: kafka.strimzi.io/v1  # Updated here as well
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: recovery-events
@@ -19,4 +8,3 @@ metadata:
 spec:
   partitions: 3
   replicas: 1
-...
