@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trend-consumer
+  namespace: recovery
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: trend-consumer
+
+  template:
+    metadata:
+      labels:
+        app: trend-consumer
+
+    spec:
+      containers:
+        - name: trend-consumer
+
+          image: trend-consumer-service
+          imagePullPolicy: IfNotPresent
+
+          workingDir: /app
+
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "recovery-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
+
+            - name: TOPIC_NAME
+              value: "raw.events"
+
+            - name: GROUP_ID
+              value: "trend-consumer-group"
+
+            - name: PYTHONPATH
+              value: "/app"

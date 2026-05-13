@@ -1,4 +1,4 @@
-apiVersion: skaffold/v4beta7
+apiVersion: skaffold/v2beta29
 kind: Config
 
 build:
@@ -10,14 +10,18 @@ build:
       docker:
         dockerfile: infra/docker/ingestion/Dockerfile
 
-manifests:
-  rawYaml:
-    - infra/k8s/base/configmap.yaml
-    - infra/k8s/base/secrets.yaml
-    - infra/k8s/apps/*.yaml
+    - image: trend-consumer-service
+      context: .
+      docker:
+        dockerfile: infra/docker/consumer/trend-consumer/Dockerfile
 
 deploy:
-  kubectl: {}
+  kubectl:
+    manifests:
+      - infra/k8s/base/configmap.yaml
+      - infra/k8s/base/secrets.yaml
+      - infra/k8s/apps/*.yaml
+      
 
 portForward:
   - resourceType: deployment
@@ -25,3 +29,9 @@ portForward:
     namespace: recovery
     port: 8080
     localPort: 8080
+
+  - resourceType: deployment
+    resourceName: trend-consumer
+    namespace: recovery
+    port: 8081
+    localPort: 8081
