@@ -2,7 +2,7 @@ import json
 
 from services.shared.kafka.consumer import create_consumer
 from services.shared.logger.logger import get_logger
-from processor import process_event
+from .processor import process_event
 
 logger = get_logger("trend-consumer")
 
