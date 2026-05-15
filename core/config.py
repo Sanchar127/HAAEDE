@@ -4,8 +4,7 @@ import os
 # Kafka Config
 # =========================
 KAFKA_BOOTSTRAP_SERVERS = os.getenv(
-    "KAFKA_BOOTSTRAP_SERVERS",
-    "localhost:9092"
+    "KAFKA_BOOTSTRAP_SERVERS"
 )
 
 KAFKA_TOPIC = os.getenv(

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iceberg-config
+  namespace: spark
+data:
+  catalog.properties: |
+    warehouse=s3a://warehouse/
+    type=hadoop

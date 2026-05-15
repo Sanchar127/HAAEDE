@@ -1,0 +1,104 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+
+metadata:
+  name: kafka-to-iceberg
+  namespace: default
+
+spec:
+  type: Python
+  pythonVersion: "3"
+  mode: cluster
+
+  image: apache/spark:3.5.0
+  imagePullPolicy: IfNotPresent
+
+  mainApplicationFile: local:///opt/spark/jobs/kafka_to_iceberg.py
+
+  sparkVersion: "3.5.0"
+
+  restartPolicy:
+    type: Never
+
+  # =========================
+  # SPARK CONFIG (FIXED)
+  # =========================
+  sparkConf:
+
+    # Iceberg support
+    "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+
+    # Iceberg catalog (HADOOP catalog for MinIO)
+    "spark.sql.catalog.local": "org.apache.iceberg.spark.SparkCatalog"
+    "spark.sql.catalog.local.type": "hadoop"
+
+    # IMPORTANT: DO NOT use root path without ensuring bucket exists
+    "spark.sql.catalog.local.warehouse": "s3a://warehouse/"
+
+    # -------------------------
+    # S3A / MINIO FIXES
+    # -------------------------
+    "spark.hadoop.fs.s3a.endpoint": "http://minio.lakehouse.svc.cluster.local:9000"
+    "spark.hadoop.fs.s3a.path.style.access": "true"
+    "spark.hadoop.fs.s3a.connection.ssl.enabled": "false"
+    "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
+
+    # CRITICAL FIX (prevents AmazonClientException)
+    "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
+
+    # Avoid metadata refresh failures in MinIO
+    "spark.hadoop.fs.s3a.connection.timeout": "60000"
+    "spark.hadoop.fs.s3a.attempts.maximum": "5"
+
+  # =========================
+  # DEPENDENCIES (COMPLETE)
+  # =========================
+  deps:
+    jars:
+
+      # Kafka Structured Streaming (REQUIRED)
+      - "https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.5.0/spark-sql-kafka-0-10_2.12-3.5.0.jar"
+
+      # Kafka client library
+      - "https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/3.5.1/kafka-clients-3.5.1.jar"
+
+      # Iceberg runtime
+      - "https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.5_2.12/1.5.2/iceberg-spark-runtime-3.5_2.12-1.5.2.jar"
+
+      # Hadoop AWS (S3A support)
+      - "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar"
+
+      # AWS SDK bundle (FIXES AmazonClientException CLASS ERRORS)
+      - "https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar"
+
+  # =========================
+  # DRIVER
+  # =========================
+  driver:
+    serviceAccount: spark
+    cores: 1
+    memory: "1g"
+    labels:
+      version: 3.5.0
+
+    volumeMounts:
+      - name: spark-job-volume
+        mountPath: /opt/spark/jobs
+
+  # =========================
+  # EXECUTOR
+  # =========================
+  executor:
+    instances: 1
+    cores: 1
+    memory: "1g"
+    labels:
+      version: 3.5.0
+
+  # =========================
+  # CODE VOLUME
+  # =========================
+  volumes:
+    - name: spark-job-volume
+      configMap:
+        name: spark-job-script
