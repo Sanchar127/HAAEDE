@@ -9,7 +9,7 @@ KAFKA_BOOTSTRAP_SERVERS = os.getenv(
 
 KAFKA_TOPIC = os.getenv(
     "KAFKA_TOPIC",
-    "recovery-events"
+    "fintech.debt.raw"
 )
 
 KAFKA_GROUP_ID = os.getenv(

@@ -23,7 +23,7 @@ schema = StructType() \
     .add("timestamp", StringType())
 
 # -----------------------------
-# READ KAFKA
+# KAFKA STREAM
 # -----------------------------
 df = spark.readStream \
     .format("kafka") \
@@ -32,13 +32,17 @@ df = spark.readStream \
     .option("startingOffsets", "latest") \
     .load()
 
+# -----------------------------
+# PARSE JSON SAFELY
+# -----------------------------
 parsed = df.selectExpr("CAST(value AS STRING) as json") \
     .select(from_json(col("json"), schema).alias("data")) \
     .select("data.*") \
+    .filter(col("source").isNotNull()) \
     .withColumn("ingested_at", current_timestamp())
 
 # -----------------------------
-# ICEBERG TABLE
+# ICEBERG TABLE (OK)
 # -----------------------------
 spark.sql("""
 CREATE TABLE IF NOT EXISTS local.bronze_events (
@@ -51,12 +55,12 @@ USING iceberg
 """)
 
 # -----------------------------
-# WRITE STREAM → ICEBERG
+# STREAM WRITE (FIXED)
 # -----------------------------
 query = parsed.writeStream \
-    .format("iceberg") \
     .outputMode("append") \
-    .option("checkpointLocation", "/tmp/checkpoints/bronze") \
+    .option("checkpointLocation", "s3a://warehouse/checkpoints/bronze") \
+    .trigger(processingTime="10 seconds") \
     .toTable("local.bronze_events")
 
 query.awaitTermination()

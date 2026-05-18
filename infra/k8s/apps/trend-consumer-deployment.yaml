@@ -30,7 +30,7 @@ spec:
               value: "recovery-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
 
             - name: TOPIC_NAME
-              value: "recovery-events"
+              value: "fintech.debt.raw"
 
             - name: GROUP_ID
               value: "trend-consumer-group"

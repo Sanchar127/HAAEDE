@@ -4,10 +4,10 @@ metadata:
   name: recovery-config
   namespace: recovery
 data:
-  KAFKA_BOOTSTRAP_SERVERS: recovery-cluster-kafka-bootstrap.kafka:9092
-  KAFKA_TOPIC: recovery-events
-  RETRY_TOPIC: recovery-events-retry
-  DLQ_TOPIC: recovery-events-dlq
+  KAFKA_BOOTSTRAP_SERVERS: recovery-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
+  KAFKA_TOPIC: fintech.debt.raw
+  RETRY_TOPIC: fintech.debt.raw-retry
+  DLQ_TOPIC: fintech.debt.raw-dlq
 
   POSTGRES_HOST: postgres
   POSTGRES_DB: recovery

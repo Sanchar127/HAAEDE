@@ -5,8 +5,8 @@ from app.processors.feature_builder import build_features
 from app.store.feature_store import save_features
 
 consumer = AIOKafkaConsumer(
-    "recovery-events",
-    bootstrap_servers="recovery-cluster-kafka-bootstrap.kafka:9092",
+    "fintech.debt.raw",
+    bootstrap_servers="recovery-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092",
     group_id="feature-processor"
 )
 
