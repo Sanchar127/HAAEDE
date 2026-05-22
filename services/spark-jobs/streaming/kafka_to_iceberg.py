@@ -2,8 +2,15 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_json, current_timestamp
 from pyspark.sql.types import StructType, StringType
 
+# -----------------------------
+# SPARK SESSION (IMPORTANT FIX)
+# -----------------------------
 spark = SparkSession.builder \
     .appName("KafkaToIceberg") \
+    .config("spark.sql.catalog.local", "org.apache.iceberg.spark.SparkCatalog") \
+    .config("spark.sql.catalog.local.type", "hadoop") \
+    .config("spark.sql.catalog.local.warehouse", "s3a://warehouse/") \
+    .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("WARN")
@@ -23,7 +30,7 @@ schema = StructType() \
     .add("timestamp", StringType())
 
 # -----------------------------
-# KAFKA STREAM
+# READ KAFKA STREAM
 # -----------------------------
 df = spark.readStream \
     .format("kafka") \
@@ -32,9 +39,6 @@ df = spark.readStream \
     .option("startingOffsets", "latest") \
     .load()
 
-# -----------------------------
-# PARSE JSON SAFELY
-# -----------------------------
 parsed = df.selectExpr("CAST(value AS STRING) as json") \
     .select(from_json(col("json"), schema).alias("data")) \
     .select("data.*") \
@@ -42,8 +46,12 @@ parsed = df.selectExpr("CAST(value AS STRING) as json") \
     .withColumn("ingested_at", current_timestamp())
 
 # -----------------------------
-# ICEBERG TABLE (OK)
+# CREATE TABLE SAFELY (IMPORTANT FIX)
 # -----------------------------
+spark.sql("""
+CREATE DATABASE IF NOT EXISTS local
+""")
+
 spark.sql("""
 CREATE TABLE IF NOT EXISTS local.bronze_events (
     source STRING,
@@ -52,15 +60,16 @@ CREATE TABLE IF NOT EXISTS local.bronze_events (
     ingested_at TIMESTAMP
 )
 USING iceberg
+LOCATION 's3a://warehouse/bronze_events'
 """)
 
 # -----------------------------
-# STREAM WRITE (FIXED)
+# STREAM WRITE
 # -----------------------------
 query = parsed.writeStream \
+    .format("iceberg") \
     .outputMode("append") \
     .option("checkpointLocation", "s3a://warehouse/checkpoints/bronze") \
-    .trigger(processingTime="10 seconds") \
     .toTable("local.bronze_events")
 
 query.awaitTermination()

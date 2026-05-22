@@ -1,0 +1,4 @@
+namespace: observability-staging
+replicas: 2
+logLevel: info
+retention: 7d

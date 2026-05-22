@@ -1,0 +1,53 @@
+grafana:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard   # ⚠️ change if needed
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 50Gi
+
+    resources:
+      requests:
+        memory: 400Mi
+        cpu: 200m
+      limits:
+        memory: 2Gi
+        cpu: 1
+
+alertmanager:
+  enabled: true
+
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 10Gi
+
+    resources:
+      requests:
+        memory: 200Mi
+        cpu: 100m
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true

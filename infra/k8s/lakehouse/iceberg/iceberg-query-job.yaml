@@ -1,0 +1,61 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: iceberg-query-debug
+  namespace: default
+
+spec:
+  type: Python
+  pythonVersion: "3"
+  mode: cluster
+
+  image: apache/spark:3.5.0
+  sparkVersion: "3.5.0"
+
+  mainApplicationFile: local:///opt/spark/jobs/debug_iceberg_query.py
+
+  restartPolicy:
+    type: Never
+
+  sparkConf:
+
+    # ICEBERG
+    "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+
+    "spark.sql.catalog.local": "org.apache.iceberg.spark.SparkCatalog"
+    "spark.sql.catalog.local.type": "hadoop"
+    "spark.sql.catalog.local.warehouse": "s3a://warehouse/"
+    "spark.sql.catalog.local.io-impl": "org.apache.iceberg.hadoop.HadoopFileIO"
+
+    # MINIO
+    "spark.hadoop.fs.s3a.endpoint": "http://minio.lakehouse.svc.cluster.local:9000"
+    "spark.hadoop.fs.s3a.path.style.access": "true"
+    "spark.hadoop.fs.s3a.connection.ssl.enabled": "false"
+    "spark.hadoop.fs.s3a.access.key": "minio"
+    "spark.hadoop.fs.s3a.secret.key": "minio123"
+    "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
+
+  driver:
+    serviceAccount: spark
+    cores: 1
+    memory: "1g"
+
+  executor:
+    instances: 1
+    cores: 1
+    memory: "1g"
+
+  volumes:
+    - name: spark-job-volume
+      configMap:
+      name: iceberg-query-script
+
+  driver:
+    volumeMounts:
+      - name: spark-job-volume
+        mountPath: /opt/spark/jobs
+
+  executor:
+    volumeMounts:
+      - name: spark-job-volume
+        mountPath: /opt/spark/jobs

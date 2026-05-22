@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+
+metadata:
+  name: observability-stack
+  namespace: argocd
+
+spec:
+  generators:
+    - list:
+        elements:
+
+          - app: prometheus
+            path: infra/observability/prometheus
+            namespace: observability
+
+          - app: grafana
+            path: infra/observability/grafana
+            namespace: observability
+
+          - app: loki
+            path: infra/observability/loki
+            namespace: observability
+
+          - app: tempo
+            path: infra/observability/tempo
+            namespace: observability
+
+          - app: otel
+            path: infra/observability/otel
+            namespace: observability
+
+  template:
+    metadata:
+      name: "{{app}}"
+
+    spec:
+      project: default
+
+      source:
+        repoURL: https://github.com/sanchar127/HAAEDE.git
+        targetRevision: main
+        path: "{{path}}"
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{namespace}}"
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - PruneLast=true

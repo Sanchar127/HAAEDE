@@ -1,0 +1,7 @@
+service: kafka
+
+objectives:
+
+  lag_threshold: 1000
+
+  uptime: 99.95

@@ -1,0 +1,4 @@
+namespace: observability-prod
+replicas: 3
+logLevel: warn
+retention: 15d

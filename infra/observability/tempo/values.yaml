@@ -1,0 +1,17 @@
+tempo:
+  retention: 72h
+
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+
+  receiver:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+service:
+  type: ClusterIP

@@ -1,0 +1,14 @@
+loki:
+
+  auth_enabled: false
+
+  persistence:
+
+    enabled: true
+
+    storageClassName: standard
+
+    size: 100Gi
+
+  service:
+    type: ClusterIP
