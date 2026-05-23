@@ -1,6 +1,5 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
-
 metadata:
   name: observability-stack
   namespace: argocd
@@ -11,24 +10,32 @@ spec:
         elements:
 
           - app: prometheus
-            path: infra/observability/prometheus
+            chart: kube-prometheus-stack
+            repoURL: https://prometheus-community.github.io/helm-charts
+            targetRevision: 58.0.0
             namespace: observability
+            valuesFile: prometheus/values.yaml
 
           - app: grafana
-            path: infra/observability/grafana
+            chart: grafana
+            repoURL: https://grafana.github.io/helm-charts
+            targetRevision: 7.3.7
             namespace: observability
+            valuesFile: grafana/values.yaml
 
           - app: loki
-            path: infra/observability/loki
+            chart: loki
+            repoURL: https://grafana.github.io/helm-charts
+            targetRevision: 6.25.0
             namespace: observability
+            valuesFile: loki/values.yaml
 
           - app: tempo
-            path: infra/observability/tempo
+            chart: tempo
+            repoURL: https://grafana.github.io/helm-charts
+            targetRevision: 1.10.1
             namespace: observability
-
-          - app: otel
-            path: infra/observability/otel
-            namespace: observability
+            valuesFile: tempo/values.yaml
 
   template:
     metadata:
@@ -38,9 +45,13 @@ spec:
       project: default
 
       source:
-        repoURL: https://github.com/sanchar127/HAAEDE.git
-        targetRevision: main
-        path: "{{path}}"
+        repoURL: "{{repoURL}}"
+        chart: "{{chart}}"
+        targetRevision: "{{targetRevision}}"
+
+        helm:
+          valueFiles:
+            - values.yaml
 
       destination:
         server: https://kubernetes.default.svc
@@ -50,8 +61,5 @@ spec:
         automated:
           prune: true
           selfHeal: true
-
         syncOptions:
           - CreateNamespace=true
-          - ApplyOutOfSyncOnly=true
-          - PruneLast=true
