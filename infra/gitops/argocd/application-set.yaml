@@ -8,50 +8,49 @@ spec:
   generators:
     - list:
         elements:
-
           - app: prometheus
             chart: kube-prometheus-stack
             repoURL: https://prometheus-community.github.io/helm-charts
             targetRevision: 58.0.0
             namespace: observability
-            valuesFile: prometheus/values.yaml
 
           - app: grafana
             chart: grafana
             repoURL: https://grafana.github.io/helm-charts
             targetRevision: 7.3.7
             namespace: observability
-            valuesFile: grafana/values.yaml
 
           - app: loki
             chart: loki
             repoURL: https://grafana.github.io/helm-charts
             targetRevision: 6.25.0
             namespace: observability
-            valuesFile: loki/values.yaml
 
           - app: tempo
             chart: tempo
             repoURL: https://grafana.github.io/helm-charts
             targetRevision: 1.10.1
             namespace: observability
-            valuesFile: tempo/values.yaml
 
   template:
     metadata:
       name: "{{app}}"
-
     spec:
       project: default
 
-      source:
-        repoURL: "{{repoURL}}"
-        chart: "{{chart}}"
-        targetRevision: "{{targetRevision}}"
+      sources:
+        # Source 1: Helm chart from chart museum
+        - repoURL: "{{repoURL}}"
+          chart: "{{chart}}"
+          targetRevision: "{{targetRevision}}"
+          helm:
+            valueFiles:
+              - $values/infra/observability/{{app}}/values.yaml
 
-        helm:
-          valueFiles:
-            - values.yaml
+        # Source 2: Your git repo holding the values files
+        - repoURL: https://github.com/Sanchar127/HAADE.git
+          targetRevision: sanchar-dev
+          ref: values
 
       destination:
         server: https://kubernetes.default.svc
