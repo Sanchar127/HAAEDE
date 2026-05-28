@@ -7,54 +7,101 @@ spec:
   generators:
     - list:
         elements:
+          # ─────────────────────────────────────────────────────
+          # Prometheus (kube-prometheus-stack wrapper)
+          # ─────────────────────────────────────────────────────
           - app: prometheus
-            chart: kube-prometheus-stack
-            repoURL: https://prometheus-community.github.io/helm-charts
-            targetRevision: 58.0.0
+            # Path to wrapper chart in YOUR Git repo (relative to repo root)
+            gitPath: observability/prometheus
+            # ⚠️ REPLACE with your actual Git repo URL (SSH or HTTPS)
+            repoURL: https://github.com/Sanchar127/HAAEDE.git
+            targetRevision: sanchar-dev
             namespace: observability
-            valuesPath: observability/prometheus/values.yaml
+            # Chart name inside the wrapper's Chart.yaml dependencies
+            upstreamChart: kube-prometheus-stack
 
+          # ─────────────────────────────────────────────────────
+          # Grafana
+          # ─────────────────────────────────────────────────────
           - app: grafana
-            chart: grafana
-            repoURL: https://grafana.github.io/helm-charts
-            targetRevision: 7.3.7
+            gitPath: observability/grafana
+            repoURL: https://github.com/Sanchar127/HAAEDE.git
+            targetRevision: HEAD
             namespace: observability
-            valuesPath: observability/grafana/values.yaml
+            upstreamChart: grafana
 
+          # ─────────────────────────────────────────────────────
+          # Loki
+          # ─────────────────────────────────────────────────────
           - app: loki
-            chart: loki
-            repoURL: https://grafana.github.io/helm-charts
-            targetRevision: 6.25.0
+            gitPath: observability/loki
+            repoURL: https://github.com/Sanchar127/HAAEDE.git
+            targetRevision: HEAD
             namespace: observability
-            valuesPath: observability/loki/values.yaml
+            upstreamChart: loki
 
+          # ─────────────────────────────────────────────────────
+          # Tempo
+          # ─────────────────────────────────────────────────────
           - app: tempo
-            chart: tempo
-            repoURL: https://grafana.github.io/helm-charts
-            targetRevision: 1.10.1
+            gitPath: observability/tempo
+            repoURL: https://github.com/Sanchar127/HAAEDE.git
+            targetRevision: HEAD
             namespace: observability
-            valuesPath: observability/tempo/values.yaml
+            upstreamChart: tempo
 
   template:
     metadata:
       name: "{{app}}"
       namespace: argocd
+      labels:
+        app.kubernetes.io/managed-by: argocd
+        observability.component: "{{app}}"
     spec:
       project: default
+
+      # ✅ Source points to YOUR Git repo, not external Helm repos
       source:
         repoURL: "{{repoURL}}"
-        chart: "{{chart}}"
+        path: "{{gitPath}}"          # e.g., observability/prometheus
         targetRevision: "{{targetRevision}}"
         helm:
+          # ✅ values.yaml is now resolved relative to `path`
           valueFiles:
-            - "{{valuesPath}}"   # ← Dynamic path to your values file
+            - values.yaml
+          # Optional: pass app name as Helm value for templating
+          parameters:
+            - name: global.appName
+              value: "{{app}}"
+
       destination:
         server: https://kubernetes.default.svc
         namespace: "{{namespace}}"
+
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
+          allowEmpty: false
         syncOptions:
           - CreateNamespace=true
-          - ServerSideApply=true   # Helps with CRDs and complex resources
+          - ServerSideApply=true
+          - Validate=false           # Skip strict validation if CRDs are delayed
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+
+      # ✅ Ignore differences that cause false "OutOfSync" on stateful apps
+      ignoreDifferences:
+        - group: apps
+          kind: StatefulSet
+          jsonPointers:
+            - /spec/replicas
+            - /spec/revisionHistoryLimit
+        - group: ""
+          kind: ConfigMap
+          jsonPointers:
+            - /data/grafana\.ini   # Grafana may auto-generate config
