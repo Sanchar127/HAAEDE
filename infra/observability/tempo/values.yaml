@@ -1,19 +1,27 @@
+# Tempo core configuration
 tempo:
   retention: 72h
+  
+  # Local storage for traces (can switch to S3 later)
   storage:
     trace:
       backend: local
       local:
         path: /var/tempo/traces
+  
+  # OTLP receiver configuration
   receiver:
     otlp:
       protocols:
         grpc: {}
         http: {}
 
+# Service exposure
 service:
   type: ClusterIP
 
+# Persistent storage for trace data
 persistence:
   enabled: true
   size: 20Gi
+  storageClassName: local-path

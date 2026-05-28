@@ -1,6 +1,8 @@
+# Disable Grafana from kube-prometheus-stack (using standalone Grafana instead)
 grafana:
   enabled: false
 
+# Prometheus configuration
 prometheus:
   prometheusSpec:
     retention: 15d
@@ -8,39 +10,51 @@ prometheus:
     evaluationInterval: 15s
     serviceMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
+    
+    # Persistent storage for Prometheus
     storageSpec:
       volumeClaimTemplate:
         spec:
           storageClassName: local-path
-          accessModes: ["ReadWriteOnce"]
+          accessModes:
+            - ReadWriteOnce
           resources:
             requests:
               storage: 50Gi
+    
+    # Resource limits
     resources:
       requests:
         memory: 400Mi
         cpu: 200m
       limits:
         memory: 2Gi
-        cpu: 1
+        cpu: "1"
 
+# Alertmanager configuration
 alertmanager:
   enabled: true
   alertmanagerSpec:
+    # Persistent storage for Alertmanager
     storage:
       volumeClaimTemplate:
         spec:
-          accessModes: ["ReadWriteOnce"]
+          storageClassName: local-path
+          accessModes:
+            - ReadWriteOnce
           resources:
             requests:
               storage: 10Gi
+    # Resource limits
     resources:
       requests:
         memory: 200Mi
         cpu: 100m
 
+# Node exporter for host metrics
 nodeExporter:
   enabled: true
 
+# Kube-state-metrics for Kubernetes object metrics
 kubeStateMetrics:
   enabled: true
