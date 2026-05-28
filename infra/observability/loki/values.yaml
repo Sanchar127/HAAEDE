@@ -1,51 +1,51 @@
-deploymentMode: SingleBinary
+loki:                          # ← subchart key (matches dependency name)
+  deploymentMode: SingleBinary
 
-loki:
-  auth_enabled: false
-  
-  commonConfig:
-    replication_factor: 1
+  loki:                        # ← loki's own config section
+    auth_enabled: false
 
-  schemaConfig:
-    configs:
-      - from: "2024-01-01"
-        store: tsdb
-        object_store: s3
-        schema: v13
-        index:
-          prefix: index_
-          period: 24h
+    commonConfig:
+      replication_factor: 1
 
-  storage:
-    type: s3
-    bucketNames:
-      chunks: loki
-      ruler: loki
-      admin: loki
-    s3:                                    # ← connection details go HERE, not storage_config.aws
-      endpoint: http://minio.lakehouse.svc.cluster.local:9000
-      accessKeyId: minio
-      secretAccessKey: minio123
-      s3ForcePathStyle: true
-      insecure: true
-      region: us-east-1                   # MinIO requires a region (any value works)
+    schemaConfig:
+      configs:
+        - from: "2024-01-01"
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
 
-singleBinary:
-  replicas: 1
-  persistence:
-    enabled: true
-    size: 10Gi
-    storageClassName: local-path
+    storage:
+      type: s3
+      bucketNames:
+        chunks: loki
+        ruler: loki
+        admin: loki
+      s3:
+        endpoint: http://minio.lakehouse.svc.cluster.local:9000
+        accessKeyId: minio
+        secretAccessKey: minio123
+        s3ForcePathStyle: true
+        insecure: true
+        region: us-east-1
 
-# Disable scalable-mode components
-write:
-  replicas: 0
-read:
-  replicas: 0
-backend:
-  replicas: 0
+  singleBinary:
+    replicas: 1
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClassName: local-path
 
-chunksCache:
-  enabled: false
-resultsCache:
-  enabled: false
+  write:
+    replicas: 0
+  read:
+    replicas: 0
+  backend:
+    replicas: 0
+
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
