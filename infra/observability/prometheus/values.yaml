@@ -6,20 +6,16 @@ prometheus:
     retention: 15d
     scrapeInterval: 15s
     evaluationInterval: 15s
-
     serviceMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
-
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: standard   # ⚠️ change if needed
-          accessModes:
-            - ReadWriteOnce
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
           resources:
             requests:
               storage: 50Gi
-
     resources:
       requests:
         memory: 400Mi
@@ -30,17 +26,14 @@ prometheus:
 
 alertmanager:
   enabled: true
-
   alertmanagerSpec:
     storage:
       volumeClaimTemplate:
         spec:
-          accessModes:
-            - ReadWriteOnce
+          accessModes: ["ReadWriteOnce"]
           resources:
             requests:
               storage: 10Gi
-
     resources:
       requests:
         memory: 200Mi
