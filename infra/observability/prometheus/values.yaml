@@ -1,3 +1,5 @@
+crds:
+  enabled: false
 # Disable Grafana from kube-prometheus-stack (using standalone Grafana instead)
 grafana:
   enabled: false

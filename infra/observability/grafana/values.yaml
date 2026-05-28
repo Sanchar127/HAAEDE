@@ -1,3 +1,5 @@
+crds:
+  enabled: false
 # Admin credentials via existing secret
 admin:
   existingSecret: grafana-admin

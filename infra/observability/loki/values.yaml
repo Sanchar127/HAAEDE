@@ -1,3 +1,5 @@
+crds:
+  enabled: false
 # Loki deployment mode: SingleBinary for simplicity
 deploymentMode: SingleBinary
 
