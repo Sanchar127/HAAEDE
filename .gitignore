@@ -60,3 +60,4 @@ secrets.yaml
 skaffold
 minikube-linux-amd64
 skaffold
+*.tar
