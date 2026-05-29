@@ -15,10 +15,12 @@ spec:
     spec:
       containers:
         - name: ingestion
-          image: ingestion-service
-          imagePullPolicy: Never
-
+          image: sanchar127/ingestion-service:latest
+          imagePullPolicy: IfNotPresent
           workingDir: /app
+
+          ports:
+            - containerPort: 8001   # 🔥 IMPORTANT (metrics port)
 
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS

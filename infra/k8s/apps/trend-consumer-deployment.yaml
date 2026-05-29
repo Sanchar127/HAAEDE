@@ -19,11 +19,13 @@ spec:
     spec:
       containers:
         - name: trend-consumer
-
-          image: trend-consumer-service
+          image: sanchar127/trend-consumer-service:latest
           imagePullPolicy: IfNotPresent
-
           workingDir: /app
+
+          ports:
+            - name: metrics
+              containerPort: 8002   # 👈 IMPORTANT (documentation + clarity)
 
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS

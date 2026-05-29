@@ -1,8 +1,8 @@
 import asyncio
 import json
 from aiokafka import AIOKafkaConsumer
-from app.processors.feature_builder import build_features
-from app.store.feature_store import save_features
+from services.ingestion.app.processors.feature_builder import build_features
+from services.ingestion.app.store.feature_store import save_features
 
 consumer = AIOKafkaConsumer(
     "fintech.debt.raw",

@@ -1,6 +1,13 @@
 import requests
-from app.log.logger import get_logger
 from datetime import datetime
+
+from services.ingestion.app.log.logger import get_logger
+from services.ingestion.app.metrics import (
+    INGESTED_EVENTS_TOTAL,
+    INGESTION_ERRORS_TOTAL,
+    INGESTION_LATENCY_SECONDS,
+    LAST_SUCCESS_TIMESTAMP
+)
 
 logger = get_logger("hackernews-collector")
 
@@ -41,6 +48,26 @@ class HackerNewsCollector:
         }
 
     def run(self):
-        raw = self.fetch()
-        logger.info(f"HackerNews fetched {len(raw)} items")
-        return [self.normalize(i) for i in raw]
+        import time
+        start = time.time()
+
+        try:
+            raw = self.fetch()
+            logger.info(f"HackerNews fetched {len(raw)} items")
+
+            data = [self.normalize(i) for i in raw]
+
+            INGESTED_EVENTS_TOTAL.labels(source="hackernews").inc(len(data))
+            LAST_SUCCESS_TIMESTAMP.set_to_current_time()
+
+            return data
+
+        except Exception as e:
+            INGESTION_ERRORS_TOTAL.labels(source="hackernews").inc()
+            logger.error(f"HackerNews collector failed: {e}")
+            raise
+
+        finally:
+            INGESTION_LATENCY_SECONDS.labels(source="hackernews").observe(
+                time.time() - start
+            )

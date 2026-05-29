@@ -1,0 +1,13 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: spark-metrics
+  namespace: recovery
+spec:
+  selector:
+    matchLabels:
+      app: spark
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s

@@ -3,3 +3,4 @@ kafka-python
 confluent-kafka==2.4.0
 python-dotenv
 requests
+prometheus-client

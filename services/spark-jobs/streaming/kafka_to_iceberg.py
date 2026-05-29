@@ -3,7 +3,7 @@ from pyspark.sql.functions import col, from_json, current_timestamp
 from pyspark.sql.types import StructType, StringType
 
 # -----------------------------
-# SPARK SESSION (IMPORTANT FIX)
+# SPARK SESSION
 # -----------------------------
 spark = SparkSession.builder \
     .appName("KafkaToIceberg") \
@@ -46,30 +46,16 @@ parsed = df.selectExpr("CAST(value AS STRING) as json") \
     .withColumn("ingested_at", current_timestamp())
 
 # -----------------------------
-# CREATE TABLE SAFELY (IMPORTANT FIX)
-# -----------------------------
-spark.sql("""
-CREATE DATABASE IF NOT EXISTS local
-""")
-
-spark.sql("""
-CREATE TABLE IF NOT EXISTS local.bronze_events (
-    source STRING,
-    title STRING,
-    timestamp STRING,
-    ingested_at TIMESTAMP
-)
-USING iceberg
-LOCATION 's3a://warehouse/bronze_events'
-""")
-
-# -----------------------------
 # STREAM WRITE
+# Iceberg creates the table automatically on first write
+# when using .toTable() with a non-existent table.
+# No DDL needed - avoids HadoopCatalog + S3A version-hint bug.
 # -----------------------------
 query = parsed.writeStream \
     .format("iceberg") \
     .outputMode("append") \
     .option("checkpointLocation", "s3a://warehouse/checkpoints/bronze") \
+    .option("fanout-enabled", "true") \
     .toTable("local.bronze_events")
 
 query.awaitTermination()

@@ -44,4 +44,15 @@ spec:
       targetPort: 9000
     - name: console
       port: 9001
-      targetPort: 9001
+      targetPort: 9001---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: lakehouse
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

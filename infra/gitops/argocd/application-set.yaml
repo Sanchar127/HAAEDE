@@ -14,7 +14,7 @@ spec:
             # Path to wrapper chart in YOUR Git repo (relative to repo root)
             gitPath: infra/observability/prometheus
             # ⚠️ REPLACE with your actual Git repo URL (SSH or HTTPS)
-            repoURL: https://github.com/Sanchar127/HAAEDE.git
+            repoURL: git@github.com:Sanchar127/HAAEDE.git
             targetRevision: sanchar-dev
             namespace: observability
             # Chart name inside the wrapper's Chart.yaml dependencies
@@ -25,8 +25,8 @@ spec:
           # ─────────────────────────────────────────────────────
           - app: grafana
             gitPath: infra/observability/grafana
-            repoURL: https://github.com/Sanchar127/HAAEDE.git
-            targetRevision: HEAD
+            repoURL: git@github.com:Sanchar127/HAAEDE.git
+            targetRevision: sanchar-dev
             namespace: observability
             upstreamChart: grafana
 
@@ -35,8 +35,8 @@ spec:
           # ─────────────────────────────────────────────────────
           - app: loki
             gitPath: infra/observability/loki
-            repoURL: https://github.com/Sanchar127/HAAEDE.git
-            targetRevision: HEAD
+            repoURL: git@github.com:Sanchar127/HAAEDE.git
+            targetRevision: sanchar-dev
             namespace: observability
             upstreamChart: loki
 
@@ -45,8 +45,8 @@ spec:
           # ─────────────────────────────────────────────────────
           - app: tempo
             gitPath: infra/observability/tempo
-            repoURL: https://github.com/Sanchar127/HAAEDE.git
-            targetRevision: HEAD
+            repoURL: git@github.com:Sanchar127/HAAEDE.git
+            targetRevision: sanchar-dev
             namespace: observability
             upstreamChart: tempo
 

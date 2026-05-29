@@ -1,8 +1,14 @@
 import os
 import json
-from confluent_kafka import Producer  # Added this import
+import time
+from confluent_kafka import Producer
 
-from app.log.logger import get_logger
+from services.ingestion.app.log.logger import get_logger
+from services.shared.metrics.metrics import (
+    KAFKA_MESSAGES_PRODUCED_TOTAL,
+    KAFKA_PRODUCE_ERRORS_TOTAL,
+    KAFKA_PRODUCE_LATENCY_SECONDS
+)
 
 logger = get_logger("kafka-producer")
 
@@ -13,7 +19,6 @@ if not kafka_server:
 
 logger.info(f"Connecting to Kafka at {kafka_server}")
 
-# Initialize the Producer
 producer = Producer({
     "bootstrap.servers": kafka_server,
     "client.id": "pulse-scope-producer"
@@ -28,16 +33,44 @@ def delivery_report(err, msg):
 
 
 def stream_to_kafka(topic, data_chunk):
-    # If using Pandas DataFrame
+
+    # DataFrame support
     if hasattr(data_chunk, "iterrows"):
         iterator = data_chunk.iterrows()
         for _, row in iterator:
             payload = row.to_json()
-            producer.produce(topic, value=payload, callback=delivery_report)
-    # If using standard list/dict
+            _produce(topic, payload, "unknown")
+
+    # List/dict support
     else:
         for row in data_chunk:
             payload = json.dumps(row)
-            producer.produce(topic, value=payload, callback=delivery_report)
+            _produce(topic, payload, row.get("source", "unknown"))
 
     producer.flush()
+
+
+def _produce(topic, payload, source):
+    start = time.time()
+
+    try:
+        producer.produce(
+            topic,
+            value=payload,
+            callback=delivery_report
+        )
+
+        KAFKA_MESSAGES_PRODUCED_TOTAL.labels(
+            topic=topic,
+            source=source
+        ).inc()
+
+    except Exception as e:
+        KAFKA_PRODUCE_ERRORS_TOTAL.labels(topic=topic).inc()
+        logger.error(f"Kafka produce error: {e}")
+        raise
+
+    finally:
+        KAFKA_PRODUCE_LATENCY_SECONDS.labels(topic=topic).observe(
+            time.time() - start
+        )

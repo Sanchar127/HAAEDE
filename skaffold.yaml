@@ -2,15 +2,13 @@ apiVersion: skaffold/v2beta29
 kind: Config
 
 build:
-  local:
-    push: false
   artifacts:
-    - image: ingestion-service
+    - image: sanchar127/ingestion-service
       context: .
       docker:
         dockerfile: infra/docker/ingestion/Dockerfile
 
-    - image: trend-consumer-service
+    - image: sanchar127/trend-consumer-service
       context: .
       docker:
         dockerfile: infra/docker/consumer/trend-consumer/Dockerfile
@@ -20,15 +18,18 @@ deploy:
     manifests:
       - infra/k8s/base/configmap.yaml
       - infra/k8s/base/secrets.yaml
+      - infra/k8s/apps/**/*.yaml
       - infra/k8s/apps/*.yaml
-      
+      - infra/k8s/lakehouse/spark/spark-app.yaml
+      - infra/k8s/lakehouse/spark/servicemonitor.yaml
+      - infra/k8s/lakehouse/spark/service.yaml
 
 portForward:
   - resourceType: deployment
     resourceName: ingestion
     namespace: recovery
-    port: 8080
-    localPort: 8080
+    port: 8001
+    localPort: 8001
 
   - resourceType: deployment
     resourceName: trend-consumer

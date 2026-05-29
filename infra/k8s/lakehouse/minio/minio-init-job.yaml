@@ -17,9 +17,7 @@ spec:
                 echo "waiting for minio..."
                 sleep 5
               done
-
               mc mb -p local/warehouse || true
               mc mb -p local/iceberg || true
               mc mb -p local/loki || true
-
               mc ls local
