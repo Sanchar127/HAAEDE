@@ -855,7 +855,7 @@ Apache Iceberg provides a structured table abstraction over object storage.
 
 ### Object Storage
 
-MinIO provides S3-compatible storage for local/on-premise lakehouse deployments.
+MinIO provides S3-compatible storage for local/on-premite workflow for accepting video-processing jobs from external applications, managing them through a controlled asynchronous queue, encoding videos with FFmpeg, storing results in S3-compatible storage, tracking job status, notifying external systems through callbacks, and providing administrators with tools for managing users, encoding profiles, jobs, monitoring, and audit trails.se lakehouse deployments.
 
 ### Kubernetes-Native Processing
 
@@ -1159,15 +1159,9 @@ Areas of interest:
 
 ---
 
-# 📜 License
 
-Add the appropriate license for the project.
 
-For example:
 
-```text
-MIT License
-```
 
 ---
 
