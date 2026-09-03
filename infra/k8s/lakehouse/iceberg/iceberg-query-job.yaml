@@ -2,14 +2,14 @@ apiVersion: sparkoperator.k8s.io/v1beta2
 kind: SparkApplication
 metadata:
   name: iceberg-query-debug
-  namespace: default
+  namespace: spark
 
 spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
 
-  image: apache/spark:3.5.0
+  image: kafka-iceberg-spark:1.0
   sparkVersion: "3.5.0"
 
   mainApplicationFile: local:///opt/spark/jobs/debug_iceberg_query.py
@@ -18,6 +18,7 @@ spec:
     type: Never
 
   sparkConf:
+    # Iceberg Spark integration
     spark.sql.extensions: org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
 
     spark.sql.catalog.local: org.apache.iceberg.spark.SparkCatalog
@@ -25,6 +26,12 @@ spec:
     spark.sql.catalog.local.warehouse: s3a://warehouse/
     spark.sql.catalog.local.io-impl: org.apache.iceberg.hadoop.HadoopFileIO
 
+    # Make Iceberg, Kafka, Hadoop AWS, and S3A JARs available
+    # to both the Spark driver and executor.
+    spark.driver.extraClassPath: /opt/spark/custom-jars/*
+    spark.executor.extraClassPath: /opt/spark/custom-jars/*
+
+    # MinIO / S3A configuration
     spark.hadoop.fs.s3a.endpoint: http://minio.lakehouse.svc.cluster.local:9000
     spark.hadoop.fs.s3a.path.style.access: "true"
     spark.hadoop.fs.s3a.connection.ssl.enabled: "false"
@@ -32,23 +39,12 @@ spec:
     spark.hadoop.fs.s3a.secret.key: minio123
     spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
 
-  volumes:
-    - name: spark-job-volume
-      configMap:
-        name: iceberg-query-script
-
   driver:
-    serviceAccount: spark
+    serviceAccount: spark-operator-spark
     cores: 1
     memory: "1g"
-    volumeMounts:
-      - name: spark-job-volume
-        mountPath: /opt/spark/jobs
 
   executor:
     instances: 1
     cores: 1
     memory: "1g"
-    volumeMounts:
-      - name: spark-job-volume
-        mountPath: /opt/spark/jobs
