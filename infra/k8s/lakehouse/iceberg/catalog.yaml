@@ -3,7 +3,11 @@ kind: ConfigMap
 metadata:
   name: iceberg-config
   namespace: spark
+  labels:
+    app.kubernetes.io/name: iceberg
+    app.kubernetes.io/component: catalog-client
 data:
   catalog.properties: |
-    warehouse=s3a://warehouse/
-    type=hadoop
+    type=rest
+    uri=http://polaris.polaris.svc.cluster.local:8181/api/catalog
+    warehouse=warehouse
