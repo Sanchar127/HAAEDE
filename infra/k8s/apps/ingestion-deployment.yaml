@@ -3,37 +3,29 @@ kind: Deployment
 metadata:
   name: ingestion
   namespace: recovery
-  labels:
-    app: ingestion
-
 spec:
   replicas: 1
-
   selector:
     matchLabels:
       app: ingestion
-
   template:
     metadata:
       labels:
         app: ingestion
-
     spec:
       containers:
         - name: ingestion
-          image: your-dockerhub/ingestion-service:1.0.0 # 👈 Docker Hub image
-          imagePullPolicy: Always # ensures latest pushed image is pulled
+          image: sanchar127/ingestion-service:latest
+          imagePullPolicy: IfNotPresent
+          workingDir: /app
 
-          resources:
-            requests:
-              cpu: "200m"
-              memory: "256Mi"
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
+          ports:
+            - containerPort: 8001  
 
-          envFrom:
-            - configMapRef:
-                name: recovery-config
-            - secretRef:
-                name: recovery-secrets
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "recovery-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
+            - name: TOPIC_NAME
+              value: "fintech.debt.raw"
+            - name: PYTHONPATH
+              value: "/app"

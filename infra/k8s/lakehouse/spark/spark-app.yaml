@@ -1,0 +1,88 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: kafka-to-iceberg
+  namespace: recovery
+
+spec:
+  type: Python
+  pythonVersion: "3"
+  mode: cluster
+
+  image: kafka-iceberg-spark:1.0
+  imagePullPolicy: IfNotPresent
+  sparkVersion: "3.5.0"
+
+  mainApplicationFile: local:///opt/spark/jobs/streaming/kafka_to_iceberg.py
+
+  restartPolicy:
+    type: OnFailure
+    onFailureRetries: 3
+    onFailureRetryInterval: 10
+    onSubmissionFailureRetries: 3
+    onSubmissionFailureRetryInterval: 20
+
+  sparkConf:
+    spark.kafka.bootstrap.servers: recovery-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
+    spark.sql.streaming.kafka.useDeprecatedOffsetFetching: "false"
+    spark.kafka.consumer.security.protocol: PLAINTEXT
+    spark.kafka.consumer.session.timeout.ms: "30000"
+    spark.kafka.consumer.request.timeout.ms: "40000"
+    spark.kafka.consumer.retries: "10"
+
+    spark.sql.extensions: org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
+    spark.sql.catalog.local: org.apache.iceberg.spark.SparkCatalog
+    spark.sql.catalog.local.type: hadoop
+    spark.sql.catalog.local.warehouse: s3a://warehouse/
+    spark.sql.catalog.local.io-impl: org.apache.iceberg.hadoop.HadoopFileIO
+
+    spark.hadoop.fs.s3a.endpoint: http://minio.lakehouse.svc.cluster.local:9000
+    spark.hadoop.fs.s3a.path.style.access: "true"
+    spark.hadoop.fs.s3a.connection.ssl.enabled: "false"
+    spark.hadoop.fs.s3a.access.key: minio
+    spark.hadoop.fs.s3a.secret.key: minio123
+    spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
+    spark.hadoop.fs.s3a.aws.credentials.provider: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
+
+    spark.pyspark.python: python3
+    spark.pyspark.driver.python: python3
+
+    spark.sql.shuffle.partitions: "2"
+    spark.default.parallelism: "2"
+    spark.driver.memoryOverhead: "512m"
+    spark.executor.memoryOverhead: "512m"
+
+    spark.network.timeout: 300s
+    spark.executor.heartbeatInterval: 60s
+
+    spark.kubernetes.file.upload.path: /tmp
+    spark.jars.ivy: /tmp/.ivy2
+
+    spark.driver.extraClassPath: /opt/spark/custom-jars/*
+    spark.executor.extraClassPath: /opt/spark/custom-jars/*
+
+  driver:
+    serviceAccount: spark-operator-spark
+    cores: 1
+    coreLimit: "1200m"
+    memory: "1g"
+    env:
+      - name: SPARK_DRIVER_EXTRA_JAVA_OPTIONS
+        value: "-javaagent:/jmx/jmx_prometheus_javaagent.jar=8090:/jmx/jmx-config.yaml"
+    ports:
+      - name: metrics
+        containerPort: 8090
+        protocol: TCP
+
+  executor:
+    instances: 1
+    cores: 1
+    coreLimit: "1200m"
+    memory: "1g"
+    env:
+      - name: SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS
+        value: "-javaagent:/jmx/jmx_prometheus_javaagent.jar=8090:/jmx/jmx-config.yaml"
+    ports:
+      - name: metrics
+        containerPort: 8090
+        protocol: TCP

@@ -1,0 +1,4 @@
+namespace: observability-dev
+replicas: 1
+logLevel: debug
+retention: 3d

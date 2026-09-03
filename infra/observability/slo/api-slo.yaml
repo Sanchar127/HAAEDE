@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: api-slo
+  namespace: observability
+
+data:
+  slo.yaml: |
+    service: ingestion-api
+
+    objectives:
+      availability: 99.9
+
+      latency_p95_ms: 300
+
+      error_rate: 0.1

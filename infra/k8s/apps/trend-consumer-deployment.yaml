@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trend-consumer
+  namespace: recovery
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: trend-consumer
+
+  template:
+    metadata:
+      labels:
+        app: trend-consumer
+
+    spec:
+      containers:
+        - name: trend-consumer
+          image: sanchar127/trend-consumer-service:latest
+          imagePullPolicy: IfNotPresent
+          workingDir: /app
+
+          ports:
+            - name: metrics
+              containerPort: 8002   # 👈 IMPORTANT (documentation + clarity)
+
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "recovery-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
+
+            - name: TOPIC_NAME
+              value: "fintech.debt.raw"
+
+            - name: GROUP_ID
+              value: "trend-consumer-group"
+
+            - name: PYTHONPATH
+              value: "/app"

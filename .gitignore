@@ -56,4 +56,8 @@ secrets.yaml
 # =========================
 # Mac / Linux
 # =========================
-.DS_Store
+.DS_Storeminikube-linux-amd64
+skaffold
+minikube-linux-amd64
+skaffold
+*.tar

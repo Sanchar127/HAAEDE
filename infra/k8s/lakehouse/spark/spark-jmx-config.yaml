@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-jmx-config
+  namespace: default
+data:
+  jmx-config.yaml: |
+    startDelaySeconds: 0
+    rules:
+      - pattern: ".*"

@@ -1,0 +1,21 @@
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: dual-role-pool
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: recovery-kafka
+spec:
+  replicas: 1
+  roles:
+    - controller
+    - broker
+  storage:
+    type: ephemeral # Change to 'persistent-claim' for real data persistence
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+    limits:
+      memory: 2Gi
+      cpu: "1"

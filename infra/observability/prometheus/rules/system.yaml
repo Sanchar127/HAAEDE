@@ -1,0 +1,48 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+
+metadata:
+  name: system-alerts
+  namespace: observability
+
+spec:
+  groups:
+
+    - name: system.rules
+
+      rules:
+
+      - alert: HighCPUUsage
+
+        expr: |
+          100 - (
+          avg by(instance)
+          (irate(node_cpu_seconds_total{mode="idle"}[5m])) *100
+          ) > 80
+
+        for: 5m
+
+        labels:
+          severity: critical
+
+        annotations:
+          summary: High CPU utilization
+
+      - alert: HighMemoryUsage
+
+        expr: |
+          (
+          node_memory_MemTotal_bytes -
+          node_memory_MemAvailable_bytes
+          )
+          /
+          node_memory_MemTotal_bytes
+          *100 > 85
+
+        for: 5m
+
+        labels:
+          severity: critical
+
+        annotations:
+          summary: High memory usage

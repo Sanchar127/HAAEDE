@@ -1,0 +1,51 @@
+crds:
+  enabled: false
+# Admin credentials via existing secret
+admin:
+  existingSecret: grafana-admin
+  userKey: admin-user
+  passwordKey: admin-password
+
+# Persistent storage for dashboards/plugins
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClassName: local-path
+
+# Service configuration
+service:
+  type: ClusterIP
+
+# Pre-configured datasources
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        isDefault: true
+        url: http://prometheus-operated.observability.svc.cluster.local:9090
+      
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki-headless.observability.svc.cluster.local:3100
+      
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: http://tempo.observability.svc.cluster.local:3200
+
+# Dashboard provider configuration
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: default
+        folder: General
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards

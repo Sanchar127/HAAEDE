@@ -1,26 +1,65 @@
-from modules.ingestion.app.loader import load_dataset
-from modules.ingestion.app.mapper import map_to_event
-from modules.ingestion.app.producer import EventProducer
+import os
+import time
 
-DATA_PATH = "app/data/lending_club.csv"
-TOPIC = "recovery-events"
+from prometheus_client import start_http_server
 
-def main():
-    print("📊 Loading dataset...")
-    df = load_dataset(DATA_PATH)
+from services.ingestion.app.producer import stream_to_kafka
+from services.ingestion.app.collectors.github_collector import GitHubCollector
+from services.ingestion.app.collectors.hackernews_collector import HackerNewsCollector
+from services.ingestion.app.log.logger import get_logger
 
-    producer = EventProducer()
+logger = get_logger("ingestion-service")
 
-    print("🚀 Streaming events to Kafka...")
+TOPIC_NAME = os.getenv("TOPIC_NAME", "raw.events")
+INTERVAL = int(os.getenv("POLL_INTERVAL", "140"))
 
-    for _, row in df.iterrows():
-        event = map_to_event(row.to_dict())
 
-        producer.send(TOPIC, event)
+def start_ingestion():
+    logger.info("🚀 Starting Layer 1 Ingestion Service")
 
-        print(f"📤 Sent: {event['event_type']} | {event['customer_id']}")
+    # Expose Prometheus /metrics endpoint
+    start_http_server(8001)
+    logger.info("📊 Metrics server running on :8001/metrics")
 
-        time.sleep(0.2)  # simulate real-time stream
+    github = GitHubCollector()
+    hackernews = HackerNewsCollector()
+
+    while True:
+        start_time = time.time()
+        success = False
+
+        try:
+            logger.info("🔄 Collecting events from sources...")
+
+            # ---------------- COLLECT ----------------
+            github_events = github.run() or []
+            hn_events = hackernews.run() or []
+
+            all_events = github_events + hn_events
+
+            logger.info(f"Collected {len(all_events)} total events")
+
+            # ---------------- SEND TO KAFKA ----------------
+            if all_events:
+                stream_to_kafka(TOPIC_NAME, all_events)
+                logger.info(f"Sent {len(all_events)} events to Kafka topic={TOPIC_NAME}")
+            else:
+                logger.warning("No events collected in this cycle")
+
+            success = True
+
+        except Exception as e:
+            logger.exception(f"Ingestion error occurred: {e}")
+
+        finally:
+            duration = time.time() - start_time
+            logger.info(f"Cycle completed in {duration:.3f}s")
+
+            if not success:
+                logger.warning("Ingestion cycle failed")
+
+        time.sleep(INTERVAL)
+
 
 if __name__ == "__main__":
-    main()
+    start_ingestion()

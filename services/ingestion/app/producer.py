@@ -1,14 +1,76 @@
+import os
 import json
-from kafka import KafkaProducer
-from app.core.config import KAFKA_BOOTSTRAP_SERVERS
+import time
+from confluent_kafka import Producer
 
-class EventProducer:
-    def __init__(self):
-        self.producer = KafkaProducer(
-            bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-            value_serializer=lambda v: json.dumps(v).encode("utf-8")
+from services.ingestion.app.log.logger import get_logger
+from services.shared.metrics.metrics import (
+    KAFKA_MESSAGES_PRODUCED_TOTAL,
+    KAFKA_PRODUCE_ERRORS_TOTAL,
+    KAFKA_PRODUCE_LATENCY_SECONDS
+)
+
+logger = get_logger("kafka-producer")
+
+kafka_server = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+
+if not kafka_server:
+    raise ValueError("KAFKA_BOOTSTRAP_SERVERS not set")
+
+logger.info(f"Connecting to Kafka at {kafka_server}")
+
+producer = Producer({
+    "bootstrap.servers": kafka_server,
+    "client.id": "pulse-scope-producer"
+})
+
+
+def delivery_report(err, msg):
+    if err:
+        logger.error(f"Delivery failed: {err}")
+    else:
+        logger.info(f"Delivered to {msg.topic()} [{msg.partition()}]")
+
+
+def stream_to_kafka(topic, data_chunk):
+
+    # DataFrame support
+    if hasattr(data_chunk, "iterrows"):
+        iterator = data_chunk.iterrows()
+        for _, row in iterator:
+            payload = row.to_json()
+            _produce(topic, payload, "unknown")
+
+    # List/dict support
+    else:
+        for row in data_chunk:
+            payload = json.dumps(row)
+            _produce(topic, payload, row.get("source", "unknown"))
+
+    producer.flush()
+
+
+def _produce(topic, payload, source):
+    start = time.time()
+
+    try:
+        producer.produce(
+            topic,
+            value=payload,
+            callback=delivery_report
         )
 
-    def send(self, topic: str, event: dict):
-        self.producer.send(topic, event)
-        self.producer.flush()
+        KAFKA_MESSAGES_PRODUCED_TOTAL.labels(
+            topic=topic,
+            source=source
+        ).inc()
+
+    except Exception as e:
+        KAFKA_PRODUCE_ERRORS_TOTAL.labels(topic=topic).inc()
+        logger.error(f"Kafka produce error: {e}")
+        raise
+
+    finally:
+        KAFKA_PRODUCE_LATENCY_SECONDS.labels(topic=topic).observe(
+            time.time() - start
+        )

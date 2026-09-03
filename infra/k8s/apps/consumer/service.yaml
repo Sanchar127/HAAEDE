@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: trend-consumer
+  namespace: recovery
+  labels:
+    app: trend-consumer
+spec:
+  selector:
+    app: trend-consumer
+  ports:
+    - name: metrics
+      port: 8002
+      targetPort: 8002

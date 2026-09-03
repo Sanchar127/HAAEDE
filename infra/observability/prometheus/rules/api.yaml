@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+
+metadata:
+  name: api-alerts
+  namespace: observability
+
+spec:
+  groups:
+    - name: api.rules
+
+      rules:
+
+      - alert: HighAPIErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+
+        for: 2m
+
+        labels:
+          severity: critical
+
+        annotations:
+          summary: High API error rate detected
