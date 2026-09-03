@@ -166,6 +166,78 @@ ensure_namespace() {
 
 
 # ------------------------------------------------------------
+# Helper: GitHub authentication secret
+# ------------------------------------------------------------
+
+ensure_github_secret() {
+    local namespace="recovery"
+    local secret_name="ingestion-github"
+
+    echo
+    echo "Checking GitHub authentication..."
+
+    # Reuse existing secret
+    if kubectl get secret "$secret_name" -n "$namespace" >/dev/null 2>&1; then
+        success "GitHub Secret '$secret_name' already exists."
+        return 0
+    fi
+
+    echo
+    echo "GitHub authentication is not configured."
+    echo
+    echo "A GitHub Personal Access Token (PAT) is required so the"
+    echo "ingestion service can access the GitHub API with authentication."
+    echo
+    echo "The token will be stored only in Kubernetes Secret:"
+    echo "  $namespace/$secret_name"
+    echo
+
+    # Allow experienced users / CI to provide the token through
+    # an environment variable.
+    if [[ -n "${INGESTION_GITHUB_TOKEN:-}" ]]; then
+
+        GITHUB_TOKEN="$INGESTION_GITHUB_TOKEN"
+
+    else
+
+        # Interactive setup
+        if [[ ! -t 0 ]]; then
+            error "GitHub PAT is required, but setup is running non-interactively."
+            echo
+            echo "Set the token first:"
+            echo
+            echo '  export INGESTION_GITHUB_TOKEN="your_github_pat"'
+            echo
+            echo "Then run:"
+            echo
+            echo "  ./infra/scripts/setup.sh"
+            exit 1
+        fi
+
+        read -rsp "Enter your GitHub PAT: " GITHUB_TOKEN
+        echo
+
+    fi
+
+    if [[ -z "$GITHUB_TOKEN" ]]; then
+        error "GitHub PAT cannot be empty."
+        exit 1
+    fi
+
+    echo
+    echo "Creating Kubernetes Secret..."
+
+    kubectl create secret generic "$secret_name" \
+        -n "$namespace" \
+        --from-literal=INGESTION_GITHUB_TOKEN="$GITHUB_TOKEN"
+
+    # Remove the shell variable as soon as it is no longer needed.
+    unset GITHUB_TOKEN
+
+    success "GitHub authentication Secret created."
+}
+
+# ------------------------------------------------------------
 # 1. Prerequisites
 # ------------------------------------------------------------
 

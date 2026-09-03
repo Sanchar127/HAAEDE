@@ -3,29 +3,69 @@ kind: Deployment
 metadata:
   name: ingestion
   namespace: recovery
+
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: ingestion
+
   template:
     metadata:
       labels:
         app: ingestion
+
     spec:
       containers:
         - name: ingestion
+
           image: sanchar127/ingestion-service:latest
           imagePullPolicy: IfNotPresent
+
           workingDir: /app
 
           ports:
-            - containerPort: 8001  
+            - containerPort: 8001
+              name: metrics
 
           env:
+            # ------------------------------------------------
+            # Kafka
+            # ------------------------------------------------
+
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: "recovery-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
+
             - name: TOPIC_NAME
               value: "fintech.debt.raw"
+
+            # ------------------------------------------------
+            # Python
+            # ------------------------------------------------
+
             - name: PYTHONPATH
               value: "/app"
+
+            # ------------------------------------------------
+            # GitHub API Authentication
+            # ------------------------------------------------
+            #
+            # The actual PAT is NOT stored in this YAML.
+            #
+            # Kubernetes loads it from:
+            #
+            #   Secret: ingestion-github
+            #   Key:    INGESTION_GITHUB_TOKEN
+            #
+            # Python reads it with:
+            #
+            #   os.getenv("INGESTION_GITHUB_TOKEN")
+            #
+
+            - name: INGESTION_GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ingestion-github
+                  key: INGESTION_GITHUB_TOKEN
+
