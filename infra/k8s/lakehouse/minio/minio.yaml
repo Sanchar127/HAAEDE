@@ -21,14 +21,28 @@ spec:
             - /data
             - --console-address
             - ":9001"
+
           env:
             - name: MINIO_ROOT_USER
               value: minio
             - name: MINIO_ROOT_PASSWORD
               value: minio123
+
           ports:
             - containerPort: 9000
             - containerPort: 9001
+
+          # ✅ THIS IS REQUIRED (mount PVC here)
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+
+      # ✅ THIS CONNECTS PVC TO POD
+      volumes:
+        - name: minio-data
+          persistentVolumeClaim:
+            claimName: minio-pvc
+
 ---
 apiVersion: v1
 kind: Service
@@ -44,7 +58,9 @@ spec:
       targetPort: 9000
     - name: console
       port: 9001
-      targetPort: 9001---
+      targetPort: 9001
+
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

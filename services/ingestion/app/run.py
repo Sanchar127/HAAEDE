@@ -11,7 +11,7 @@ from services.ingestion.app.log.logger import get_logger
 logger = get_logger("ingestion-service")
 
 TOPIC_NAME = os.getenv("TOPIC_NAME", "raw.events")
-INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))
+INTERVAL = int(os.getenv("POLL_INTERVAL", "140"))
 
 
 def start_ingestion():

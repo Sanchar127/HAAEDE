@@ -20,7 +20,7 @@ spec:
           workingDir: /app
 
           ports:
-            - containerPort: 8001   # 🔥 IMPORTANT (metrics port)
+            - containerPort: 8001  
 
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS

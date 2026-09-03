@@ -54,6 +54,7 @@ spec:
 
     spark.network.timeout: 300s
     spark.executor.heartbeatInterval: 60s
+
     spark.kubernetes.file.upload.path: /tmp
     spark.jars.ivy: /tmp/.ivy2
 

@@ -16,13 +16,28 @@ build:
 deploy:
   kubectl:
     manifests:
+      # =========================
+      # BASE INFRA (CONFIG + SECRETS)
+      # =========================
       - infra/k8s/base/configmap.yaml
       - infra/k8s/base/secrets.yaml
-      - infra/k8s/apps/**/*.yaml
+
+      # =========================
+      # APPLICATION LAYER
+      # =========================
       - infra/k8s/apps/*.yaml
-      - infra/k8s/lakehouse/spark/spark-app.yaml
-      - infra/k8s/lakehouse/spark/servicemonitor.yaml
-      - infra/k8s/lakehouse/spark/service.yaml
+
+      # =========================
+      # LAKEHOUSE STORAGE LAYER
+      # =========================
+      - infra/k8s/lakehouse/storage/*.yaml
+      - infra/k8s/lakehouse/minio/*.yaml
+
+      # =========================
+      # LAKEHOUSE PROCESSING
+      # =========================
+      - infra/k8s/lakehouse/iceberg/*.yaml
+      - infra/k8s/lakehouse/spark/*.yaml
 
 portForward:
   - resourceType: deployment
