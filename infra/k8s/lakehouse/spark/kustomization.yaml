@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - spark-namespace.yaml
+  - spark-application-rbac-spark.yaml
+  - spark-application-rbac-recovery.yaml
+  - spark-app.yaml
+  - service.yaml
+  - servicemonitor.yaml
+  - spark-jmx-config.yaml
