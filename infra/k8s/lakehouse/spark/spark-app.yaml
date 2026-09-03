@@ -62,7 +62,7 @@ spec:
     spark.executor.extraClassPath: /opt/spark/custom-jars/*
 
   driver:
-    serviceAccount: spark
+    serviceAccount: spark-operator-spark
     cores: 1
     coreLimit: "1200m"
     memory: "1g"
