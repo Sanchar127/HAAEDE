@@ -3,37 +3,72 @@ import time
 
 from prometheus_client import start_http_server
 
-from services.ingestion.app.producer import stream_to_kafka
 from services.ingestion.app.collectors.github_collector import GitHubCollector
-from services.ingestion.app.collectors.hackernews_collector import HackerNewsCollector
+from services.ingestion.app.collectors.hackernews_collector import (
+    HackerNewsCollector,
+)
 from services.ingestion.app.log.logger import get_logger
+from services.ingestion.app.producer import stream_to_kafka
+
 
 logger = get_logger("ingestion-service")
 
 
+# ------------------------------------------------------------
+# Configuration
+# ------------------------------------------------------------
+
 TOPIC_NAME = os.getenv(
     "TOPIC_NAME",
-    "raw.events",
+    "fintech.debt.raw",
 )
 
-# GitHub Events API is not intended for aggressive polling.
-#
-# Default:
-#   300 seconds = 5 minutes
-#
+# GitHub: every 5 minutes
 GITHUB_INTERVAL = int(
     os.getenv("GITHUB_POLL_INTERVAL", "300")
 )
 
-# Hacker News can use a different interval.
-#
-# Default:
-#   120 seconds = 2 minutes
-#
+# HackerNews: every 2 minutes
 HACKERNEWS_INTERVAL = int(
     os.getenv("HACKERNEWS_POLL_INTERVAL", "120")
 )
 
+
+# ------------------------------------------------------------
+# Run one collector safely
+# ------------------------------------------------------------
+
+def collect_source(name, collector):
+    """
+    Run one collector without allowing its failure
+    to stop the other collectors.
+    """
+
+    try:
+        logger.info(
+            f"Collecting from {name}..."
+        )
+
+        events = collector.run() or []
+
+        logger.info(
+            f"{name} collected {len(events)} events"
+        )
+
+        return events
+
+    except Exception as exc:
+
+        logger.exception(
+            f"{name} collection failed: {exc}"
+        )
+
+        return []
+
+
+# ------------------------------------------------------------
+# Ingestion service
+# ------------------------------------------------------------
 
 def start_ingestion():
 
@@ -42,11 +77,13 @@ def start_ingestion():
     )
 
     logger.info(
-        f"GitHub polling interval: {GITHUB_INTERVAL}s"
+        f"GitHub polling interval: "
+        f"{GITHUB_INTERVAL}s"
     )
 
     logger.info(
-        f"Hacker News polling interval: {HACKERNEWS_INTERVAL}s"
+        f"HackerNews polling interval: "
+        f"{HACKERNEWS_INTERVAL}s"
     )
 
     # --------------------------------------------------------
@@ -66,9 +103,13 @@ def start_ingestion():
     github = GitHubCollector()
     hackernews = HackerNewsCollector()
 
-    # Run each source immediately on startup.
+    # Run both sources immediately on startup.
     next_github_run = 0
     next_hackernews_run = 0
+
+    # --------------------------------------------------------
+    # Main scheduler
+    # --------------------------------------------------------
 
     while True:
 
@@ -76,73 +117,39 @@ def start_ingestion():
 
         all_events = []
 
-        # ----------------------------------------------------
+        # ====================================================
         # GitHub
-        # ----------------------------------------------------
+        # ====================================================
 
         if now >= next_github_run:
 
-            logger.info(
-                "🔄 Collecting GitHub events..."
+            github_events = collect_source(
+                "GitHub",
+                github,
             )
 
-            try:
-                github_events = github.run() or []
+            all_events.extend(github_events)
 
-                all_events.extend(github_events)
+            next_github_run = now + GITHUB_INTERVAL
 
-                logger.info(
-                    f"GitHub returned {len(github_events)} events"
-                )
-
-            except Exception as e:
-
-                logger.exception(
-                    f"GitHub collection failed: {e}"
-                )
-
-            finally:
-                next_github_run = time.time() + GITHUB_INTERVAL
-
-        # ----------------------------------------------------
-        # Hacker News
-        # ----------------------------------------------------
+        # ====================================================
+        # HackerNews
+        # ====================================================
 
         if now >= next_hackernews_run:
 
-            logger.info(
-                "🔄 Collecting Hacker News events..."
+            hackernews_events = collect_source(
+                "HackerNews",
+                hackernews,
             )
 
-            try:
-                hackernews_events = (
-                    hackernews.run() or []
-                )
+            all_events.extend(hackernews_events)
 
-                all_events.extend(
-                    hackernews_events
-                )
+            next_hackernews_run = now + HACKERNEWS_INTERVAL
 
-                logger.info(
-                    "Hacker News returned "
-                    f"{len(hackernews_events)} events"
-                )
-
-            except Exception as e:
-
-                logger.exception(
-                    f"Hacker News collection failed: {e}"
-                )
-
-            finally:
-                next_hackernews_run = (
-                    time.time()
-                    + HACKERNEWS_INTERVAL
-                )
-
-        # ----------------------------------------------------
+        # ====================================================
         # Kafka
-        # ----------------------------------------------------
+        # ====================================================
 
         if all_events:
 
@@ -158,24 +165,22 @@ def start_ingestion():
                     f"to Kafka topic={TOPIC_NAME}"
                 )
 
-            except Exception as e:
+            except Exception as exc:
 
                 logger.exception(
-                    f"Kafka publishing failed: {e}"
+                    f"Failed to send events to Kafka: {exc}"
                 )
 
-        # ----------------------------------------------------
-        # Sleep
-        # ----------------------------------------------------
-        #
-        # We don't need to wake up every second.
-        #
-        # 1 second keeps scheduling responsive while remaining
-        # extremely cheap.
-        # ----------------------------------------------------
+        # ====================================================
+        # Scheduler sleep
+        # ====================================================
 
         time.sleep(1)
 
+
+# ------------------------------------------------------------
+# Application entry point
+# ------------------------------------------------------------
 
 if __name__ == "__main__":
     start_ingestion()

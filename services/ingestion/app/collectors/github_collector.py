@@ -12,6 +12,7 @@ from services.ingestion.app.metrics import (
     LAST_SUCCESS_TIMESTAMP,
 )
 
+
 logger = get_logger("github-collector")
 
 
@@ -20,43 +21,28 @@ class GitHubCollector:
     def __init__(self):
         self.url = "https://api.github.com/events"
 
-        # Token is injected through the environment.
-        #
-        # Kubernetes:
-        #
-        # GitHub PAT
-        #     ↓
-        # Kubernetes Secret
-        #     ↓
-        # INGESTION_GITHUB_TOKEN
-        #     ↓
-        # this class
-        #
+        # GitHub PAT is injected by Kubernetes as an
+        # environment variable.
         self.token = os.getenv("INGESTION_GITHUB_TOKEN")
 
         self.session = requests.Session()
 
-        self.session.headers.update(
-            {
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-                "User-Agent": "HAAEDE-ingestion-service",
-            }
-        )
+        self.session.headers.update({
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "HAAEDE-ingestion-service",
+        })
 
         if self.token:
-            self.session.headers.update(
-                {
-                    "Authorization": f"Bearer {self.token}",
-                }
-            )
+            self.session.headers.update({
+                "Authorization": f"Bearer {self.token}",
+            })
 
-            logger.info("GitHub authentication enabled")
-
+            logger.info("GitHub API authentication enabled")
         else:
             logger.warning(
-                "INGESTION_GITHUB_TOKEN is not configured. "
-                "GitHub requests will be unauthenticated."
+                "INGESTION_GITHUB_TOKEN is not configured; "
+                "GitHub API requests will be unauthenticated"
             )
 
     def fetch(self):
@@ -68,55 +54,35 @@ class GitHubCollector:
         )
 
         # ----------------------------------------------------
-        # GitHub primary rate limit
-        # ----------------------------------------------------
-        #
-        # GitHub returns:
-        #
-        # X-RateLimit-Limit
-        # X-RateLimit-Remaining
-        # X-RateLimit-Reset
-        #
-        # When remaining == 0, do not repeatedly retry.
-        # Instead return no events and let the caller continue
-        # with the other ingestion sources.
+        # GitHub rate-limit handling
         # ----------------------------------------------------
 
         remaining = response.headers.get("X-RateLimit-Remaining")
-        reset = response.headers.get("X-RateLimit-Reset")
+        reset_timestamp = response.headers.get("X-RateLimit-Reset")
 
+        # Primary GitHub rate limit exceeded.
         if response.status_code == 403 and remaining == "0":
 
-            reset_timestamp = None
-
-            try:
-                if reset:
-                    reset_timestamp = int(reset)
-            except ValueError:
-                pass
+            reset_message = "unknown"
 
             if reset_timestamp:
-                now = int(time.time())
-                wait_seconds = max(0, reset_timestamp - now)
+                try:
+                    reset_time = datetime.fromtimestamp(
+                        int(reset_timestamp),
+                        tz=timezone.utc,
+                    )
 
-                logger.warning(
-                    "GitHub API rate limit exhausted. "
-                    f"Reset in approximately {wait_seconds}s."
-                )
+                    reset_message = reset_time.isoformat()
 
-            else:
-                logger.warning(
-                    "GitHub API rate limit exhausted, "
-                    "but X-RateLimit-Reset was unavailable."
-                )
+                except (ValueError, TypeError):
+                    pass
 
-            # Important:
-            #
-            # Do NOT raise here.
-            #
-            # Returning [] allows the ingestion service to continue
-            # processing Hacker News instead of failing the entire
-            # ingestion cycle.
+            logger.warning(
+                "GitHub API rate limit exceeded. "
+                f"Rate limit resets at {reset_message}. "
+                "Skipping this collection cycle."
+            )
+
             return []
 
         # ----------------------------------------------------
@@ -128,8 +94,8 @@ class GitHubCollector:
         data = response.json()
 
         logger.info(
-            "GitHub request successful "
-            f"(remaining={remaining or 'unknown'})"
+            f"GitHub API request successful "
+            f"(remaining={remaining})"
         )
 
         return data
@@ -169,18 +135,20 @@ class GitHubCollector:
 
             return data
 
-        except Exception as e:
+        except Exception as exc:
+
             INGESTION_ERRORS_TOTAL.labels(
                 source="github"
             ).inc()
 
             logger.error(
-                f"GitHub collector failed: {e}"
+                f"GitHub collector failed: {exc}"
             )
 
             raise
 
         finally:
+
             INGESTION_LATENCY_SECONDS.labels(
                 source="github"
             ).observe(time.time() - start)
