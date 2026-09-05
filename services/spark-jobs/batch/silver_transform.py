@@ -89,7 +89,8 @@ cleaned = (
 # ============================================================
 # 5. Deduplicate Bronze before MERGE
 #
-# Bronze can contain many copies of the same event_id.
+# Bronze is append-only and can contain multiple copies
+# of the same event_id.
 #
 # Keep the latest version based on ingested_at.
 # ============================================================
@@ -159,19 +160,25 @@ spark.sql(
 
 
 # ============================================================
-# 8. Idempotent MERGE
-#
-# event_id is the business key.
-#
-# If event_id already exists:
-#     UPDATE it
-#
-# If event_id does not exist:
-#     INSERT it
+# 8. Create temporary source view
 # ============================================================
 
 silver.createOrReplaceTempView("silver_source")
 
+
+# ============================================================
+# 9. Idempotent MERGE into Silver
+#
+# event_id is the business key.
+#
+# Existing event_id:
+#     UPDATE the canonical Silver row.
+#
+# New event_id:
+#     INSERT a new Silver row.
+#
+# This makes the operation safe to run repeatedly.
+# ============================================================
 
 spark.sql(
     """
@@ -228,7 +235,8 @@ spark.sql(
 
 
 # ============================================================
-# 9. Stop Spark
+# 10. Stop Spark
 # ============================================================
 
 spark.stop()
+
