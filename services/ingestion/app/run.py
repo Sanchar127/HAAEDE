@@ -160,6 +160,12 @@ def start_ingestion():
                     all_events,
                 )
 
+                # Kafka successfully delivered the batch.
+                # Only now mark HackerNews events as seen.
+                hackernews.mark_published(
+                    hackernews_events
+                )
+
                 logger.info(
                     f"Sent {len(all_events)} events "
                     f"to Kafka topic={TOPIC_NAME}"

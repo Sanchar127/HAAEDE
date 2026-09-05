@@ -15,13 +15,19 @@ logger = get_logger("hackernews-collector")
 class HackerNewsCollector:
 
     BASE_URL = "https://hacker-news.firebaseio.com/v0"
+
+    # Number of stories fetched from Hacker News on every poll.
     STORY_LIMIT = 20
 
+    # Maximum number of event IDs retained in memory.
+    # This prevents the cache from growing forever.
+    MAX_SEEN_IDS = 10_000
+
     def __init__(self):
-        # IDs already emitted by this collector instance.
+        # IDs successfully published by this ingestion process.
         #
-        # This is intentionally an in-memory cache for Layer 1.
-        # Silver will later provide the durable/idempotent guarantee.
+        # This is Layer 1 protection only.
+        # Silver will later provide durable idempotency.
         self.seen_event_ids: set[int] = set()
 
     def fetch(self):
@@ -40,6 +46,7 @@ class HackerNewsCollector:
         stories = []
 
         for sid in story_ids:
+
             item_url = f"{self.BASE_URL}/item/{sid}.json"
 
             item_response = requests.get(
@@ -100,7 +107,6 @@ class HackerNewsCollector:
                 if event_id in self.seen_event_ids:
                     continue
 
-                self.seen_event_ids.add(event_id)
                 new_data.append(event)
 
             logger.info(
@@ -137,3 +143,30 @@ class HackerNewsCollector:
             ).observe(
                 time.time() - start
             )
+
+    def mark_published(self, events):
+        """
+        Mark events as seen only after Kafka successfully
+        accepted the complete batch.
+        """
+
+        for event in events:
+
+            event_id = event.get("event_id")
+
+            if event_id is not None:
+                self.seen_event_ids.add(event_id)
+
+        # Prevent unbounded memory growth.
+        #
+        # If the cache grows beyond the limit, keep the newest
+        # IDs only.
+        if len(self.seen_event_ids) > self.MAX_SEEN_IDS:
+
+            self.seen_event_ids = set(
+                list(self.seen_event_ids)[-self.MAX_SEEN_IDS:]
+            )
+
+        logger.info(
+            f"Marked {len(events)} HackerNews events as published"
+        )
