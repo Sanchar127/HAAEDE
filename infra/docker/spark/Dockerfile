@@ -12,8 +12,9 @@ RUN mkdir -p /opt/spark/jobs \
 # ----------------------------
 # Copy Spark jobs
 # ----------------------------
-COPY services/spark-jobs/ /opt/spark/jobs/
 
+COPY services/spark-jobs/ /opt/spark/jobs/
+COPY services/shared/ /opt/spark/jobs/common/
 # ----------------------------
 # Kafka + Spark SQL (Structured Streaming)
 # REQUIRED FOR spark.readStream.format("kafka")

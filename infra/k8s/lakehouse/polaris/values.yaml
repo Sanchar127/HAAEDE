@@ -1,0 +1,27 @@
+replicaCount: 1
+
+image:
+  repository: apache/polaris
+  tag: "1.7.0"
+  pullPolicy: IfNotPresent
+
+persistence:
+  type: relational-jdbc
+
+  relationalJdbc:
+    secret:
+      name: polaris-persistence
+      username: username
+      password: password
+      jdbcUrl: jdbcUrl
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+service:
+  type: ClusterIP
