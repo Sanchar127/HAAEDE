@@ -1,0 +1,104 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+
+metadata:
+  name: gold-transform
+  namespace: recovery
+
+spec:
+  type: Python
+  pythonVersion: "3"
+  mode: cluster
+
+  image: kafka-iceberg-spark:1.1
+  imagePullPolicy: IfNotPresent
+  sparkVersion: "3.5.0"
+
+  mainApplicationFile: local:///opt/spark/jobs/batch/gold_transform.py
+
+  restartPolicy:
+    type: Never
+
+  sparkConf:
+    # --------------------------------------------------
+    # Iceberg
+    # --------------------------------------------------
+    spark.sql.extensions: org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
+
+    spark.sql.catalog.local: org.apache.iceberg.spark.SparkCatalog
+    spark.sql.catalog.local.type: hadoop
+    spark.sql.catalog.local.warehouse: s3a://warehouse/
+    spark.sql.catalog.local.io-impl: org.apache.iceberg.hadoop.HadoopFileIO
+
+    # --------------------------------------------------
+    # MinIO / S3A
+    # --------------------------------------------------
+    spark.hadoop.fs.s3a.endpoint: http://minio.lakehouse.svc.cluster.local:9000
+    spark.hadoop.fs.s3a.path.style.access: "true"
+    spark.hadoop.fs.s3a.connection.ssl.enabled: "false"
+
+    spark.hadoop.fs.s3a.access.key: minio
+    spark.hadoop.fs.s3a.secret.key: minio123
+
+    spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
+    spark.hadoop.fs.s3a.aws.credentials.provider: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
+
+    # --------------------------------------------------
+    # Python
+    # --------------------------------------------------
+    spark.pyspark.python: python3
+    spark.pyspark.driver.python: python3
+
+    # Make /opt/spark/jobs available for:
+    # from common.spark_session import create_spark
+    spark.executorEnv.PYTHONPATH: /opt/spark/jobs
+    spark.kubernetes.driverEnv.PYTHONPATH: /opt/spark/jobs
+
+    # --------------------------------------------------
+    # Spark resources
+    # --------------------------------------------------
+    spark.sql.shuffle.partitions: "2"
+    spark.default.parallelism: "2"
+
+    spark.driver.memoryOverhead: "512m"
+    spark.executor.memoryOverhead: "512m"
+
+    # --------------------------------------------------
+    # Spark stability
+    # --------------------------------------------------
+    spark.network.timeout: "300s"
+    spark.executor.heartbeatInterval: "60s"
+
+    # --------------------------------------------------
+    # Iceberg / custom JARs
+    # --------------------------------------------------
+    spark.driver.extraClassPath: /opt/spark/custom-jars/*
+    spark.executor.extraClassPath: /opt/spark/custom-jars/*
+
+  # ----------------------------------------------------
+  # DRIVER
+  # ----------------------------------------------------
+  driver:
+    serviceAccount: spark-operator-spark
+
+    cores: 1
+    coreLimit: "1200m"
+    memory: "1g"
+
+    env:
+      - name: PYTHONPATH
+        value: /opt/spark/jobs
+
+  # ----------------------------------------------------
+  # EXECUTOR
+  # ----------------------------------------------------
+  executor:
+    instances: 1
+
+    cores: 1
+    coreLimit: "1200m"
+    memory: "1g"
+
+    env:
+      - name: PYTHONPATH
+        value: /opt/spark/jobs
